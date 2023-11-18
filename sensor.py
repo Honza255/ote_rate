@@ -89,7 +89,8 @@ class OTERateSensor(SensorEntity):
                 date = current_date
             )
 
-            if((self._attr is not None) and ("date" in self._attr) and (current_date == self._attr["date"])):
+            if(isinstance(self._attr, dict) and "date" in self._attr and
+                    current_date == self._attr["date"]) and all(x in self._attr for x in range(24)):
                 cost_history = self._attr
                 current_cost = self._attr[current_time.hour]
 
