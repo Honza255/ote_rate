@@ -82,33 +82,42 @@ class OTERateSensor(SensorEntity):
           hour_string = "Hodina"
           cost_data = "https://www.ote-cr.cz/cs/kratkodobe-trhy/elektrina/denni-trh/@@chart-data"
 
-          date = datetime.datetime.now()
+          current_time = datetime.datetime.now()
+          current_date = current_time.strftime('%Y-%m-%d')
+
           params = dict (
-              date = date.strftime('%Y-%m-%d')
+              date = current_date
           )
 
-          response = requests.get(url=cost_data, params=params)
-          json = response.json()
-          cost_axis = ""
-          hour_axis = ""
-          for key in json['axis'].keys():
-              if json['axis'][key]['legend'] == cost_string:
-                  cost_axis = key
-              if json['axis'][key]['legend'] == hour_string:
-                  hour_axis = key
+          if((self._attr is not None) and ("date" in self._attr) and (current_date == self._attr["date"])):
+              cost_history = self._attr
+              current_cost = self._attr[current_time.hour]
+
+          else:
+              response = requests.get(url=cost_data, params=params)
+              json = response.json()
+              cost_axis = ""
+              hour_axis = ""
+              for key in json['axis'].keys():
+                  if json['axis'][key]['legend'] == cost_string:
+                      cost_axis = key
+                  if json['axis'][key]['legend'] == hour_string:
+                      hour_axis = key
 
 
-          for values in json['data']['dataLine']:
-              if values['title'] == cost_string:
-                  for data in values['point']:
-                     history_index = int(data[hour_axis])-1
-                     cost_history[history_index] = float(data[cost_axis])
-                  current_cost = cost_history[date.hour]
+              for values in json['data']['dataLine']:
+                  if values['title'] == cost_string:
+                      for data in values['point']:
+                          history_index = int(data[hour_axis])-1
+                          cost_history[history_index] = float(data[cost_axis])
+                      current_cost = cost_history[current_time.hour]
 
+              cost_history["date"] = current_date
 
           self._value = current_cost
           self._attr = cost_history
           self._available = True
+
         except:
           self._available = False
           _LOGGER.exception("Error occured while retrieving data from ote-cr.cz.")
